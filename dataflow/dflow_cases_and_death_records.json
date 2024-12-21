@@ -1,0 +1,133 @@
+{
+	"name": "dflow_cases_and_death_records",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_cases_and_deaths_adls",
+						"type": "DatasetReference"
+					},
+					"name": "CasesAndDeathsSource"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_country_code_blob",
+						"type": "DatasetReference"
+					},
+					"name": "CountryCode"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sliver_adls",
+						"type": "DatasetReference"
+					},
+					"name": "CasesAndDeathsSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "FilterOnlyEuropeanData"
+				},
+				{
+					"name": "LookupCountryCode"
+				},
+				{
+					"name": "SelectNeededColumns"
+				},
+				{
+					"name": "PivotIndicatorField"
+				},
+				{
+					"name": "MapDrifted1",
+					"description": "Creates an explicit mapping for each drifted column"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          country as string,",
+				"          country_code as string,",
+				"          continent as string,",
+				"          population as integer,",
+				"          indicator as string,",
+				"          weekly_count as integer,",
+				"          year_week as string,",
+				"          rate_14_day as string,",
+				"          cumulative_count as integer,",
+				"          source as string,",
+				"          note as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     inferDriftedColumnTypes: true,",
+				"     ignoreNoFilesFound: false) ~> CasesAndDeathsSource",
+				"source(output(",
+				"          country as string,",
+				"          country_code_2_digit as string,",
+				"          country_code_3_digit as string,",
+				"          continent as string,",
+				"          population as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> CountryCode",
+				"CasesAndDeathsSource filter(continent=='Europe' && country_code!='NA') ~> FilterOnlyEuropeanData",
+				"FilterOnlyEuropeanData, CountryCode lookup(CasesAndDeathsSource@country == CountryCode@country,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> LookupCountryCode",
+				"LookupCountryCode select(mapColumn(",
+				"          country = CasesAndDeathsSource@country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population = CasesAndDeathsSource@population,",
+				"          indicator,",
+				"          weekly_count,",
+				"          year_week,",
+				"          cumulative_count,",
+				"          source",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectNeededColumns",
+				"SelectNeededColumns pivot(groupBy(country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population,",
+				"          source,",
+				"          year_week),",
+				"     pivotBy(indicator),",
+				"     weekly = sum(weekly_count),",
+				"          cumulative = sum(cumulative_count),",
+				"     columnNaming: '$N_$V_count',",
+				"     lateral: true) ~> PivotIndicatorField",
+				"PivotIndicatorField derive(weekly_cases_count = toLong(byName('weekly_cases_count')),",
+				"          weekly_deaths_count = toLong(byName('weekly_deaths_count')),",
+				"          cumulative_cases_count = toLong(byName('cumulative_cases_count')),",
+				"          cumulative_deaths_count = toLong(byName('cumulative_deaths_count'))) ~> MapDrifted1",
+				"MapDrifted1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['covid-19_cases_and_death.csv'],",
+				"     truncate: true,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     mapColumn(",
+				"          country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population,",
+				"          source,",
+				"          year_week,",
+				"          weekly_cases_count,",
+				"          weekly_deaths_count,",
+				"          cumulative_cases_count,",
+				"          cumulative_deaths_count",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> CasesAndDeathsSink"
+			]
+		}
+	}
+}

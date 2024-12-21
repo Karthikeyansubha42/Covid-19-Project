@@ -1,0 +1,9 @@
+{
+	"name": "DF-Project-Covid19",
+	"location": "southindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "1feb8f48-ed69-4c88-8764-c040a5e88256",
+		"tenantId": "a49b9f56-209d-4707-a5ff-134980e45b0c"
+	}
+}
