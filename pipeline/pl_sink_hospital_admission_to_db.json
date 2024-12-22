@@ -97,6 +97,11 @@
 								}
 							},
 							{
+								"source": {
+									"name": "reported_start_date",
+									"type": "String",
+									"physicalType": "String"
+								},
 								"sink": {
 									"name": "reported_start_date",
 									"type": "DateTime",
@@ -104,6 +109,11 @@
 								}
 							},
 							{
+								"source": {
+									"name": "reported_end_date",
+									"type": "String",
+									"physicalType": "String"
+								},
 								"sink": {
 									"name": "reported_end_date",
 									"type": "DateTime",
@@ -180,8 +190,182 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"enableStaging": false
-				}
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"country",
+								"country_code_2_digit",
+								"country_code_3_digit",
+								"reported_start_date",
+								"reported_end_date",
+								"source",
+								"daily_or_weekly"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "country",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "country",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "country_code_2_digit",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "country_code_2_digit",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "country_code_3_digit",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "country_code_3_digit",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "population",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "population",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							},
+							{
+								"source": {
+									"name": "reported_start_date",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "reported_start_date",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "reported_end_date",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "reported_end_date",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "daily_count_of_hospital_admission",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "hospital_occupancy_count",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							},
+							{
+								"source": {
+									"name": "daily_count_of_ICU_admission",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "icu_occupancy_count",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							},
+							{
+								"source": {
+									"name": "source",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "source",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "weekly_or_daily",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "daily_or_weekly",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_sliver_from_adls",
+						"type": "DatasetReference",
+						"parameters": {
+							"file_name": "Daily_hospital_admission_rates.csv"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_hospital_admission_sqldb",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"variables": {

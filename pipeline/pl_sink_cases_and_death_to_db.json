@@ -110,31 +110,27 @@
 								}
 							},
 							{
-								"sink": {
-									"name": "daily_cases_count",
-									"type": "Int64",
-									"physicalType": "bigint"
-								}
-							},
-							{
-								"sink": {
-									"name": "daily_deaths_count",
-									"type": "Int64",
-									"physicalType": "bigint"
-								}
-							},
-							{
-								"sink": {
+								"source": {
 									"name": "reported_start_date",
 									"type": "String",
-									"physicalType": "varchar"
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "reported_start_date",
+									"type": "DateTime",
+									"physicalType": "date"
 								}
 							},
 							{
-								"sink": {
+								"source": {
 									"name": "reported_end_date",
 									"type": "String",
-									"physicalType": "varchar"
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "reported_end_date",
+									"type": "DateTime",
+									"physicalType": "date"
 								}
 							},
 							{

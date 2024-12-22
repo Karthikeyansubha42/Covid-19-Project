@@ -17,6 +17,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "CountryCode1"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_date_file_from_adls",
+						"type": "DatasetReference"
+					},
+					"name": "DateSource"
 				}
 			],
 			"sinks": [
@@ -44,6 +51,15 @@
 				{
 					"name": "MapDrifted1",
 					"description": "Creates an explicit mapping for each drifted column"
+				},
+				{
+					"name": "DerivingYearWeekColumn"
+				},
+				{
+					"name": "AggYearWeekDate"
+				},
+				{
+					"name": "JoinDateDimTable"
 				}
 			],
 			"scriptLines": [
@@ -69,24 +85,44 @@
 				"          country_code_2_digit as string,",
 				"          country_code_3_digit as string,",
 				"          continent as string,",
-				"          population as string",
+				"          population as integer",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false) ~> CountryCode1",
+				"source(output(",
+				"          date_key as date 'yyyyMMdd',",
+				"          date as date 'dd-MM-yyyy',",
+				"          year as short,",
+				"          month as short,",
+				"          day as short,",
+				"          day_name as string,",
+				"          day_of_year as short,",
+				"          week_of_month as short,",
+				"          week_of_year as short,",
+				"          month_name as string,",
+				"          year_month as integer,",
+				"          year_week as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> DateSource",
 				"CasesAndDeathsSource filter(continent=='Europe' && country_code!='NA') ~> FilterOnlyEuropeanData",
 				"FilterOnlyEuropeanData, CountryCode1 lookup(CasesAndDeathsSource@country == CountryCode1@country,",
 				"     multiple: false,",
 				"     pickup: 'any',",
 				"     broadcast: 'auto')~> LookupCountryCode",
-				"LookupCountryCode select(mapColumn(",
+				"JoinDateDimTable select(mapColumn(",
 				"          country = CasesAndDeathsSource@country,",
 				"          country_code_2_digit,",
 				"          country_code_3_digit,",
+				"          continent = CasesAndDeathsSource@continent,",
 				"          population = CasesAndDeathsSource@population,",
+				"          year_week = CasesAndDeathsSource@year_week,",
+				"          reported_start_date,",
+				"          reported_end_date,",
 				"          indicator,",
 				"          weekly_count,",
-				"          year_week,",
 				"          cumulative_count,",
 				"          source",
 				"     ),",
@@ -97,7 +133,9 @@
 				"          country_code_3_digit,",
 				"          population,",
 				"          source,",
-				"          year_week),",
+				"          year_week,",
+				"          reported_start_date,",
+				"          reported_end_date),",
 				"     pivotBy(indicator),",
 				"     weekly = sum(weekly_count),",
 				"          cumulative = sum(cumulative_count),",
@@ -107,24 +145,21 @@
 				"          weekly_deaths_count = toLong(byName('weekly_deaths_count')),",
 				"          cumulative_cases_count = toLong(byName('cumulative_cases_count')),",
 				"          cumulative_deaths_count = toLong(byName('cumulative_deaths_count'))) ~> MapDrifted1",
+				"DateSource derive(year_week = concatWS('-', substring(toString(year_week),1,4), substring(toString(year_week),5))) ~> DerivingYearWeekColumn",
+				"DerivingYearWeekColumn aggregate(groupBy(year_week),",
+				"     reported_start_date = min(date),",
+				"          reported_end_date = max(date)) ~> AggYearWeekDate",
+				"LookupCountryCode, AggYearWeekDate join(CasesAndDeathsSource@year_week == AggYearWeekDate@year_week,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> JoinDateDimTable",
 				"MapDrifted1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     partitionFileNames:['covid-19_cases_and_death.csv'],",
 				"     umask: 0022,",
 				"     preCommands: [],",
 				"     postCommands: [],",
-				"     mapColumn(",
-				"          country,",
-				"          country_code_2_digit,",
-				"          country_code_3_digit,",
-				"          population,",
-				"          source,",
-				"          year_week,",
-				"          weekly_cases_count,",
-				"          weekly_deaths_count,",
-				"          cumulative_cases_count,",
-				"          cumulative_deaths_count",
-				"     ),",
 				"     partitionBy('hash', 1)) ~> CasesAndDeathsSink"
 			]
 		}
