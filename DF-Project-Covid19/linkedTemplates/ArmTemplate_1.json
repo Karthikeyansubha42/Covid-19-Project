@@ -13,6 +13,1208 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/pl_ingest_kaggle_data')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filewatcher for date file",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "FileWatcher for country code files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@variables('kaggle_file_list')",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Copy each files",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.00:10:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobStorageReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings",
+												"copyBehavior": "PreserveHierarchy"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_kaggle_blob",
+											"type": "DatasetReference",
+											"parameters": {
+												"file_name": {
+													"value": "@item()",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_rawdata_to_adls",
+											"type": "DatasetReference",
+											"parameters": {
+												"raw_data_file_name": {
+													"value": "@item()",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "Filewatcher for date file",
+						"type": "Validation",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_kaggle_blob",
+								"type": "DatasetReference",
+								"parameters": {
+									"file_name": "date_dataset.csv"
+								}
+							},
+							"timeout": "0.00:01:00",
+							"sleep": 10
+						}
+					},
+					{
+						"name": "FileWatcher for country code files",
+						"type": "Validation",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_kaggle_blob",
+								"type": "DatasetReference",
+								"parameters": {
+									"file_name": "iso_country_codes.csv"
+								}
+							},
+							"timeout": "0.00:01:00",
+							"sleep": 10
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"kaggle_file_list": {
+						"type": "Array",
+						"defaultValue": [
+							"date_dataset.csv",
+							"iso_country_codes.csv"
+						]
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-12-21T02:24:54Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dflow_cases_and_death_records')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_cases_and_deaths_adls",
+								"type": "DatasetReference"
+							},
+							"name": "CasesAndDeathsSource"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_country_code_from_adls",
+								"type": "DatasetReference"
+							},
+							"name": "CountryCode1"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_date_file_from_adls",
+								"type": "DatasetReference"
+							},
+							"name": "DateSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_sliver_adls",
+								"type": "DatasetReference"
+							},
+							"name": "CasesAndDeathsSink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "FilterOnlyEuropeanData"
+						},
+						{
+							"name": "LookupCountryCode"
+						},
+						{
+							"name": "SelectNeededColumns"
+						},
+						{
+							"name": "PivotIndicatorField"
+						},
+						{
+							"name": "MapDrifted1",
+							"description": "Creates an explicit mapping for each drifted column"
+						},
+						{
+							"name": "DerivingYearWeekColumn"
+						},
+						{
+							"name": "AggYearWeekDate"
+						},
+						{
+							"name": "JoinDateDimTable"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          country as string,",
+						"          country_code as string,",
+						"          continent as string,",
+						"          population as integer,",
+						"          indicator as string,",
+						"          weekly_count as integer,",
+						"          year_week as string,",
+						"          rate_14_day as string,",
+						"          cumulative_count as integer,",
+						"          source as string,",
+						"          note as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     inferDriftedColumnTypes: true,",
+						"     ignoreNoFilesFound: false) ~> CasesAndDeathsSource",
+						"source(output(",
+						"          country as string,",
+						"          country_code_2_digit as string,",
+						"          country_code_3_digit as string,",
+						"          continent as string,",
+						"          population as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> CountryCode1",
+						"source(output(",
+						"          date_key as date 'yyyyMMdd',",
+						"          date as date 'dd-MM-yyyy',",
+						"          year as short,",
+						"          month as short,",
+						"          day as short,",
+						"          day_name as string,",
+						"          day_of_year as short,",
+						"          week_of_month as short,",
+						"          week_of_year as short,",
+						"          month_name as string,",
+						"          year_month as integer,",
+						"          year_week as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> DateSource",
+						"CasesAndDeathsSource filter(continent=='Europe' && country_code!='NA') ~> FilterOnlyEuropeanData",
+						"FilterOnlyEuropeanData, CountryCode1 lookup(CasesAndDeathsSource@country == CountryCode1@country,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     broadcast: 'auto')~> LookupCountryCode",
+						"JoinDateDimTable select(mapColumn(",
+						"          country = CasesAndDeathsSource@country,",
+						"          country_code_2_digit,",
+						"          country_code_3_digit,",
+						"          continent = CasesAndDeathsSource@continent,",
+						"          population = CasesAndDeathsSource@population,",
+						"          year_week = CasesAndDeathsSource@year_week,",
+						"          reported_start_date,",
+						"          reported_end_date,",
+						"          indicator,",
+						"          weekly_count,",
+						"          cumulative_count,",
+						"          source",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectNeededColumns",
+						"SelectNeededColumns pivot(groupBy(country,",
+						"          country_code_2_digit,",
+						"          country_code_3_digit,",
+						"          population,",
+						"          source,",
+						"          year_week,",
+						"          reported_start_date,",
+						"          reported_end_date),",
+						"     pivotBy(indicator),",
+						"     weekly = sum(weekly_count),",
+						"          cumulative = sum(cumulative_count),",
+						"     columnNaming: '$N_$V_count',",
+						"     lateral: true) ~> PivotIndicatorField",
+						"PivotIndicatorField derive(weekly_cases_count = toLong(byName('weekly_cases_count')),",
+						"          weekly_deaths_count = toLong(byName('weekly_deaths_count')),",
+						"          cumulative_cases_count = toLong(byName('cumulative_cases_count')),",
+						"          cumulative_deaths_count = toLong(byName('cumulative_deaths_count'))) ~> MapDrifted1",
+						"DateSource derive(year_week = concatWS('-', substring(toString(year_week),1,4), substring(toString(year_week),5))) ~> DerivingYearWeekColumn",
+						"DerivingYearWeekColumn aggregate(groupBy(year_week),",
+						"     reported_start_date = min(date),",
+						"          reported_end_date = max(date)) ~> AggYearWeekDate",
+						"LookupCountryCode, AggYearWeekDate join(CasesAndDeathsSource@year_week == AggYearWeekDate@year_week,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinDateDimTable",
+						"MapDrifted1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['covid-19_cases_and_death.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     partitionBy('hash', 1)) ~> CasesAndDeathsSink"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dflow_hospital_admission_rate')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_hospital_admission_rate",
+								"type": "DatasetReference"
+							},
+							"name": "HospitalAdmissionRateSource"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_country_code_from_adls",
+								"type": "DatasetReference"
+							},
+							"name": "CountryCode"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_date_file_from_adls",
+								"type": "DatasetReference"
+							},
+							"name": "DateSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_sliver_adls",
+								"type": "DatasetReference"
+							},
+							"name": "SinkWeeklyData"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_sliver_adls",
+								"type": "DatasetReference"
+							},
+							"name": "SinkDailyData"
+						}
+					],
+					"transformations": [
+						{
+							"name": "LeftJoinHospitalAndCountryCode"
+						},
+						{
+							"name": "SelectNeededColumn"
+						},
+						{
+							"name": "SplitWeeklyAndDailyBasis"
+						},
+						{
+							"name": "PivotIndicatorWeekly"
+						},
+						{
+							"name": "PivotIndicatorDaily"
+						},
+						{
+							"name": "CastWeeklyIndicatorValue",
+							"description": "Creates an explicit mapping for each drifted column"
+						},
+						{
+							"name": "CastDailyIndicatorValue",
+							"description": "Creates an explicit mapping for each drifted column"
+						},
+						{
+							"name": "lookup1"
+						},
+						{
+							"name": "AggregateDatefield"
+						},
+						{
+							"name": "DervingYearWeekColumn"
+						},
+						{
+							"name": "SelectRequiredFields"
+						},
+						{
+							"name": "select1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          country as string,",
+						"          indicator as string,",
+						"          date as date 'yyyy-MM-dd',",
+						"          year_week as string,",
+						"          value as short,",
+						"          source as string,",
+						"          url as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     inferDriftedColumnTypes: true,",
+						"     ignoreNoFilesFound: false) ~> HospitalAdmissionRateSource",
+						"source(output(",
+						"          country as string,",
+						"          country_code_2_digit as string,",
+						"          country_code_3_digit as string,",
+						"          continent as string,",
+						"          population as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     inferDriftedColumnTypes: true,",
+						"     ignoreNoFilesFound: false) ~> CountryCode",
+						"source(output(",
+						"          date_key as date 'yyyyMMdd',",
+						"          date as date 'dd-MM-yyyy',",
+						"          year as short,",
+						"          month as short,",
+						"          day as short,",
+						"          day_name as string,",
+						"          day_of_year as short,",
+						"          week_of_month as short,",
+						"          week_of_year as short,",
+						"          month_name as string,",
+						"          year_month as integer,",
+						"          year_week as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     inferDriftedColumnTypes: true,",
+						"     ignoreNoFilesFound: false) ~> DateSource",
+						"HospitalAdmissionRateSource, CountryCode join(HospitalAdmissionRateSource@country == CountryCode@country,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> LeftJoinHospitalAndCountryCode",
+						"LeftJoinHospitalAndCountryCode select(mapColumn(",
+						"          country = HospitalAdmissionRateSource@country,",
+						"          source,",
+						"          country_code_2_digit,",
+						"          country_code_3_digit,",
+						"          population,",
+						"          indicator,",
+						"          reported_date = date,",
+						"          reported_year_week = year_week,",
+						"          value",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectNeededColumn",
+						"SelectNeededColumn split(indicator=='Weekly new hospital admissions per 100k' || indicator=='Weekly new ICU admissions per 100k',",
+						"     disjoint: false) ~> SplitWeeklyAndDailyBasis@(Weekly, Daily)",
+						"SelectRequiredFields pivot(groupBy(country,",
+						"          country_code_2_digit,",
+						"          country_code_3_digit,",
+						"          source,",
+						"          population,",
+						"          reported_year_week,",
+						"          reported_start_date,",
+						"          reported_end_date),",
+						"     pivotBy(indicator),",
+						"     {count of} = sum(value),",
+						"     columnNaming: '$N $V',",
+						"     lateral: true) ~> PivotIndicatorWeekly",
+						"SplitWeeklyAndDailyBasis@Daily pivot(groupBy(country,",
+						"          country_code_2_digit,",
+						"          country_code_3_digit,",
+						"          source,",
+						"          population,",
+						"          reported_date),",
+						"     pivotBy(indicator),",
+						"     {count of} = sum(value),",
+						"     columnNaming: '$N $V',",
+						"     lateral: true) ~> PivotIndicatorDaily",
+						"PivotIndicatorWeekly derive(weekly_count_of_ICU_admission = toInteger(byName('count of Weekly new ICU admissions per 100k')),",
+						"          weekly_count_of_hospital_admission = toInteger(byName('count of Weekly new hospital admissions per 100k')),",
+						"          weekly_or_daily = 'Weekly') ~> CastWeeklyIndicatorValue",
+						"PivotIndicatorDaily derive(daily_count_of_ICU_admission = toInteger(byName('count of Daily ICU occupancy')),",
+						"          daily_count_of_hospital_admission = toInteger(byName('count of Daily hospital occupancy')),",
+						"          weekly_or_daily = 'Daily',",
+						"          reported_start_date = reported_date,",
+						"          reported_end_date = reported_date) ~> CastDailyIndicatorValue",
+						"SplitWeeklyAndDailyBasis@Weekly, AggregateDatefield lookup(reported_year_week == year_week,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     broadcast: 'auto')~> lookup1",
+						"DervingYearWeekColumn aggregate(groupBy(year_week),",
+						"     reported_start_date = min(date),",
+						"          reported_end_date = max(date)) ~> AggregateDatefield",
+						"DateSource derive(year_week = left(toString(year_week),4) + '-W' + right(toString(year_week),2)) ~> DervingYearWeekColumn",
+						"lookup1 select(mapColumn(",
+						"          country,",
+						"          source,",
+						"          country_code_2_digit,",
+						"          country_code_3_digit,",
+						"          population,",
+						"          indicator,",
+						"          reported_year_week,",
+						"          value,",
+						"          reported_start_date,",
+						"          reported_end_date",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectRequiredFields",
+						"CastDailyIndicatorValue select(mapColumn(",
+						"          country,",
+						"          country_code_2_digit,",
+						"          country_code_3_digit,",
+						"          source,",
+						"          population,",
+						"          weekly_or_daily,",
+						"          reported_start_date,",
+						"          reported_end_date,",
+						"          daily_count_of_ICU_admission,",
+						"          daily_count_of_hospital_admission",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"CastWeeklyIndicatorValue sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['Weekly_hospital_admission_rate.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> SinkWeeklyData",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['Daily_hospital_admission_rates.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> SinkDailyData"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_sink_cases_and_death_to_db')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "copy_activity",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE covid_reporting.cases_and_deaths;",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "country_code_2_digit",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "country_code_2_digit",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "country_code_3_digit",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "country_code_3_digit",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "population",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "population",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "weekly_cases_count",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "weekly_cases_count",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "weekly_deaths_count",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "weekly_deaths_count",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "reported_start_date",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "reported_start_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "reported_end_date",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "reported_end_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "source",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "source",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_sliver_from_adls",
+								"type": "DatasetReference",
+								"parameters": {
+									"file_name": "covid-19_cases_and_death.csv"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_cases_and_death_sqldb",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"weekly": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_sink_hospital_admission_to_db')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Weekly Copy data",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "upsert",
+								"upsertSettings": {
+									"useTempDB": true,
+									"keys": [
+										"country",
+										"country_code_2_digit",
+										"country_code_3_digit",
+										"reported_start_date",
+										"reported_end_date",
+										"source",
+										"daily_or_weekly"
+									]
+								},
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "country_code_2_digit",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "country_code_2_digit",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "country_code_3_digit",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "country_code_3_digit",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "population",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "population",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "reported_start_date",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "reported_start_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "reported_end_date",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "reported_end_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "count of Weekly new hospital admissions per 100k",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "hospital_occupancy_count",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "count of Weekly new ICU admissions per 100k",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "icu_occupancy_count",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "source",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "source",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "weekly_or_daily",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "daily_or_weekly",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_sliver_from_adls",
+								"type": "DatasetReference",
+								"parameters": {
+									"file_name": "Weekly_hospital_admission_rate.csv"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_hospital_admission_sqldb",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Daily Copy data",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "upsert",
+								"upsertSettings": {
+									"useTempDB": true,
+									"keys": [
+										"country",
+										"country_code_2_digit",
+										"country_code_3_digit",
+										"reported_start_date",
+										"reported_end_date",
+										"source",
+										"daily_or_weekly"
+									]
+								},
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "country_code_2_digit",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "country_code_2_digit",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "country_code_3_digit",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "country_code_3_digit",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "population",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "population",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "reported_start_date",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "reported_start_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "reported_end_date",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "reported_end_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "daily_count_of_hospital_admission",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "hospital_occupancy_count",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "daily_count_of_ICU_admission",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "icu_occupancy_count",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "source",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "source",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "weekly_or_daily",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "daily_or_weekly",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_sliver_from_adls",
+								"type": "DatasetReference",
+								"parameters": {
+									"file_name": "Daily_hospital_admission_rates.csv"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_hospital_admission_sqldb",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"weekly": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_transformation_cases_and_death_records')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dflow_cases_and_death_records",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"CasesAndDeathsSource": {},
+									"CountryCode1": {},
+									"DateSource": {},
+									"CasesAndDeathsSink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-12-21T02:24:54Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dflow_cases_and_death_records')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_transfromation_hospital_admission_rates')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -61,7 +1263,9 @@
 				"annotations": [],
 				"lastPublishTime": "2024-12-21T11:37:20Z"
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dflow_hospital_admission_rate')]"
+			]
 		}
 	]
 }

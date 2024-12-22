@@ -17,6 +17,9 @@
 		"ls_kaggle_http_password": {
 			"value": ""
 		},
+		"ls_azuresqldatabase_password": {
+			"value": ""
+		},
 		"ls_adls_properties_typeProperties_url": {
 			"value": "https://adls3042.dfs.core.windows.net/"
 		},
@@ -28,6 +31,15 @@
 		},
 		"ls_kaggle_http_properties_typeProperties_userName": {
 			"value": "karthikeyan42e"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_server": {
+			"value": "mydemoproject-sql-server.database.windows.net"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_database": {
+			"value": "CovidProject"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_userName": {
+			"value": "admin42"
 		}
 	}
 }

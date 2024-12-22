@@ -23,6 +23,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'ls_kaggle_http'"
 		},
+		"ls_azuresqldatabase_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'ls_azuresqldatabase'"
+		},
 		"ls_adls_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://adls3042.dfs.core.windows.net/"
@@ -38,6 +42,18 @@
 		"ls_kaggle_http_properties_typeProperties_userName": {
 			"type": "string",
 			"defaultValue": "karthikeyan42e"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "mydemoproject-sql-server.database.windows.net"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "CovidProject"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "admin42"
 		},
 		"containerUri": {
 			"type": "string",
@@ -78,6 +94,9 @@
 					"ls_kaggle_http_password": {
 						"value": "[parameters('ls_kaggle_http_password')]"
 					},
+					"ls_azuresqldatabase_password": {
+						"value": "[parameters('ls_azuresqldatabase_password')]"
+					},
 					"ls_adls_properties_typeProperties_url": {
 						"value": "[parameters('ls_adls_properties_typeProperties_url')]"
 					},
@@ -89,6 +108,15 @@
 					},
 					"ls_kaggle_http_properties_typeProperties_userName": {
 						"value": "[parameters('ls_kaggle_http_properties_typeProperties_userName')]"
+					},
+					"ls_azuresqldatabase_properties_typeProperties_server": {
+						"value": "[parameters('ls_azuresqldatabase_properties_typeProperties_server')]"
+					},
+					"ls_azuresqldatabase_properties_typeProperties_database": {
+						"value": "[parameters('ls_azuresqldatabase_properties_typeProperties_database')]"
+					},
+					"ls_azuresqldatabase_properties_typeProperties_userName": {
+						"value": "[parameters('ls_azuresqldatabase_properties_typeProperties_userName')]"
 					}
 				}
 			},
