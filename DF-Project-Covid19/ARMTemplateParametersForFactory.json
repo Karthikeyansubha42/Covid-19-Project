@@ -1,0 +1,36 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "DF-Project-Covid19"
+		},
+		"ls_adls_accountKey": {
+			"value": ""
+		},
+		"ls_azure_databricks_accessToken": {
+			"value": ""
+		},
+		"ls_blob_storage_connectionString": {
+			"value": ""
+		},
+		"ls_kaggle_http_password": {
+			"value": ""
+		},
+		"ls_adls_properties_typeProperties_url": {
+			"value": "https://adls3042.dfs.core.windows.net/"
+		},
+		"ls_ecdc_http_properties_typeProperties_url": {
+			"value": "@{linkedService().base_url}"
+		},
+		"ls_kaggle_http_properties_typeProperties_url": {
+			"value": "https://www.kaggle.com/datasets"
+		},
+		"ls_kaggle_http_properties_typeProperties_userName": {
+			"value": "karthikeyan42e"
+		},
+		"tr_ingest_population_data_properties_typeProperties_scope": {
+			"value": "/subscriptions/cdfe344d-0fd0-4b5c-b636-c2a5604f3286/resourceGroups/demo-projects/providers/Microsoft.Storage/storageAccounts/blob3042"
+		}
+	}
+}

@@ -1,0 +1,125 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "DF-Project-Covid19"
+		},
+		"ls_adls_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_adls'"
+		},
+		"ls_azure_databricks_accessToken": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accessToken' of 'ls_azure_databricks'"
+		},
+		"ls_blob_storage_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_blob_storage'"
+		},
+		"ls_kaggle_http_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'ls_kaggle_http'"
+		},
+		"ls_adls_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adls3042.dfs.core.windows.net/"
+		},
+		"ls_ecdc_http_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "@{linkedService().base_url}"
+		},
+		"ls_kaggle_http_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://www.kaggle.com/datasets"
+		},
+		"ls_kaggle_http_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "karthikeyan42e"
+		},
+		"tr_ingest_population_data_properties_typeProperties_scope": {
+			"type": "string",
+			"defaultValue": "/subscriptions/cdfe344d-0fd0-4b5c-b636-c2a5604f3286/resourceGroups/demo-projects/providers/Microsoft.Storage/storageAccounts/blob3042"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "DF-Project-Covid19_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"ls_adls_accountKey": {
+						"value": "[parameters('ls_adls_accountKey')]"
+					},
+					"ls_azure_databricks_accessToken": {
+						"value": "[parameters('ls_azure_databricks_accessToken')]"
+					},
+					"ls_blob_storage_connectionString": {
+						"value": "[parameters('ls_blob_storage_connectionString')]"
+					},
+					"ls_kaggle_http_password": {
+						"value": "[parameters('ls_kaggle_http_password')]"
+					},
+					"ls_adls_properties_typeProperties_url": {
+						"value": "[parameters('ls_adls_properties_typeProperties_url')]"
+					},
+					"ls_ecdc_http_properties_typeProperties_url": {
+						"value": "[parameters('ls_ecdc_http_properties_typeProperties_url')]"
+					},
+					"ls_kaggle_http_properties_typeProperties_url": {
+						"value": "[parameters('ls_kaggle_http_properties_typeProperties_url')]"
+					},
+					"ls_kaggle_http_properties_typeProperties_userName": {
+						"value": "[parameters('ls_kaggle_http_properties_typeProperties_userName')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "DF-Project-Covid19_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"tr_ingest_population_data_properties_typeProperties_scope": {
+						"value": "[parameters('tr_ingest_population_data_properties_typeProperties_scope')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'DF-Project-Covid19_ArmTemplate_0')]"
+			]
+		}
+	]
+}
