@@ -15,7 +15,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Covid-19 Notebooks/NB_transformation_covid-19_testing_file"
+					"notebookPath": "/Covid-19 Notebooks/NB_transformation_covid-19_testing_file",
+					"baseParameters": {
+						"housekeeping_status": "N"
+					}
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_azure_databricks",
