@@ -252,134 +252,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ds_country_code_blob')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_blob_storage",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobStorageLocation",
-						"fileName": "iso_country_codes.csv",
-						"folderPath": "kaggle_dataset",
-						"container": "source-dataset"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"name": "country",
-						"type": "String"
-					},
-					{
-						"name": "country_code_2_digit",
-						"type": "String"
-					},
-					{
-						"name": "country_code_3_digit",
-						"type": "String"
-					},
-					{
-						"name": "continent",
-						"type": "String"
-					},
-					{
-						"name": "population",
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_blob_storage')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/ds_date_blob')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_blob_storage",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobStorageLocation",
-						"fileName": "date_dataset.csv",
-						"folderPath": "kaggle_dataset",
-						"container": "source-dataset"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"name": "date_key",
-						"type": "String"
-					},
-					{
-						"name": "date",
-						"type": "String"
-					},
-					{
-						"name": "year",
-						"type": "String"
-					},
-					{
-						"name": "month",
-						"type": "String"
-					},
-					{
-						"name": "day",
-						"type": "String"
-					},
-					{
-						"name": "day_name",
-						"type": "String"
-					},
-					{
-						"name": "day_of_year",
-						"type": "String"
-					},
-					{
-						"name": "week_of_month",
-						"type": "String"
-					},
-					{
-						"name": "week_of_year",
-						"type": "String"
-					},
-					{
-						"name": "month_name",
-						"type": "String"
-					},
-					{
-						"name": "year_month",
-						"type": "String"
-					},
-					{
-						"name": "year_week",
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_blob_storage')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/ds_ecdc_data_web')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -602,6 +474,132 @@
 					"quoteChar": "\""
 				},
 				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_country_code_from_adls')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "iso_country_codes.csv",
+						"fileSystem": "raw-data"
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "country",
+						"type": "String"
+					},
+					{
+						"name": "country_code_2_digit",
+						"type": "String"
+					},
+					{
+						"name": "country_code_3_digit",
+						"type": "String"
+					},
+					{
+						"name": "continent",
+						"type": "String"
+					},
+					{
+						"name": "population",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_date_file_from_adls')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "date_dataset.csv",
+						"fileSystem": "raw-data"
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "date_key",
+						"type": "String"
+					},
+					{
+						"name": "date",
+						"type": "String"
+					},
+					{
+						"name": "year",
+						"type": "String"
+					},
+					{
+						"name": "month",
+						"type": "String"
+					},
+					{
+						"name": "day",
+						"type": "String"
+					},
+					{
+						"name": "day_name",
+						"type": "String"
+					},
+					{
+						"name": "day_of_year",
+						"type": "String"
+					},
+					{
+						"name": "week_of_month",
+						"type": "String"
+					},
+					{
+						"name": "week_of_year",
+						"type": "String"
+					},
+					{
+						"name": "month_name",
+						"type": "String"
+					},
+					{
+						"name": "year_month",
+						"type": "String"
+					},
+					{
+						"name": "year_week",
+						"type": "String"
+					}
+				]
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/ls_adls')]"
@@ -956,10 +954,10 @@
 						},
 						{
 							"dataset": {
-								"referenceName": "ds_country_code_blob",
+								"referenceName": "ds_country_code_from_adls",
 								"type": "DatasetReference"
 							},
-							"name": "CountryCode"
+							"name": "CountryCode1"
 						}
 					],
 					"sinks": [
@@ -1012,13 +1010,13 @@
 						"          country_code_2_digit as string,",
 						"          country_code_3_digit as string,",
 						"          continent as string,",
-						"          population as integer",
+						"          population as string",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> CountryCode",
+						"     ignoreNoFilesFound: false) ~> CountryCode1",
 						"CasesAndDeathsSource filter(continent=='Europe' && country_code!='NA') ~> FilterOnlyEuropeanData",
-						"FilterOnlyEuropeanData, CountryCode lookup(CasesAndDeathsSource@country == CountryCode@country,",
+						"FilterOnlyEuropeanData, CountryCode1 lookup(CasesAndDeathsSource@country == CountryCode1@country,",
 						"     multiple: false,",
 						"     pickup: 'any',",
 						"     broadcast: 'auto')~> LookupCountryCode",
@@ -1075,7 +1073,7 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/ds_cases_and_deaths_adls')]",
-				"[concat(variables('factoryId'), '/datasets/ds_country_code_blob')]",
+				"[concat(variables('factoryId'), '/datasets/ds_country_code_from_adls')]",
 				"[concat(variables('factoryId'), '/datasets/ds_sliver_adls')]"
 			]
 		},
@@ -1096,14 +1094,14 @@
 						},
 						{
 							"dataset": {
-								"referenceName": "ds_country_code_blob",
+								"referenceName": "ds_country_code_from_adls",
 								"type": "DatasetReference"
 							},
 							"name": "CountryCode"
 						},
 						{
 							"dataset": {
-								"referenceName": "ds_date_blob",
+								"referenceName": "ds_date_file_from_adls",
 								"type": "DatasetReference"
 							},
 							"name": "DateSource"
@@ -1172,7 +1170,7 @@
 						"source(output(",
 						"          country as string,",
 						"          indicator as string,",
-						"          date as date,",
+						"          date as date 'dd-MM-yyyy',",
 						"          year_week as string,",
 						"          value as short,",
 						"          source as string,",
@@ -1209,6 +1207,7 @@
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
+						"     inferDriftedColumnTypes: true,",
 						"     ignoreNoFilesFound: false) ~> DateSource",
 						"HospitalAdmissionRateSource, CountryCode join(HospitalAdmissionRateSource@country == CountryCode@country,",
 						"     joinType:'left',",
@@ -1327,8 +1326,8 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/ds_hospital_admission_rate')]",
-				"[concat(variables('factoryId'), '/datasets/ds_country_code_blob')]",
-				"[concat(variables('factoryId'), '/datasets/ds_date_blob')]",
+				"[concat(variables('factoryId'), '/datasets/ds_country_code_from_adls')]",
+				"[concat(variables('factoryId'), '/datasets/ds_date_file_from_adls')]",
 				"[concat(variables('factoryId'), '/datasets/ds_sliver_adls')]"
 			]
 		},
@@ -1357,7 +1356,7 @@
 								"parameters": {},
 								"datasetParameters": {
 									"CasesAndDeathsSource": {},
-									"CountryCode": {},
+									"CountryCode1": {},
 									"CasesAndDeathsSink": {}
 								}
 							},
