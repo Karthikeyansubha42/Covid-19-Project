@@ -1,9 +1,9 @@
 {
-	"name": "pl_sink_cases_and_death_to_db",
+	"name": "pl_sink_hospital_admission_to_db",
 	"properties": {
 		"activities": [
 			{
-				"name": "copy_activity",
+				"name": "Weekly Copy data",
 				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
@@ -28,8 +28,19 @@
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"preCopyScript": "TRUNCATE TABLE covid_reporting.cases_and_deaths;",
-						"writeBehavior": "insert",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"country",
+								"country_code_2_digit",
+								"country_code_3_digit",
+								"reported_start_date",
+								"reported_end_date",
+								"source",
+								"daily_or_weekly"
+							]
+						},
 						"sqlWriterUseTableLock": false,
 						"disableMetricsCollection": false
 					},
@@ -86,55 +97,31 @@
 								}
 							},
 							{
-								"source": {
-									"name": "weekly_cases_count",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "weekly_cases_count",
-									"type": "Int64",
-									"physicalType": "bigint"
-								}
-							},
-							{
-								"source": {
-									"name": "weekly_deaths_count",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "weekly_deaths_count",
-									"type": "Int64",
-									"physicalType": "bigint"
-								}
-							},
-							{
-								"sink": {
-									"name": "daily_cases_count",
-									"type": "Int64",
-									"physicalType": "bigint"
-								}
-							},
-							{
-								"sink": {
-									"name": "daily_deaths_count",
-									"type": "Int64",
-									"physicalType": "bigint"
-								}
-							},
-							{
 								"sink": {
 									"name": "reported_start_date",
-									"type": "String",
-									"physicalType": "varchar"
+									"type": "DateTime",
+									"physicalType": "date"
 								}
 							},
 							{
 								"sink": {
 									"name": "reported_end_date",
-									"type": "String",
-									"physicalType": "varchar"
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"sink": {
+									"name": "hospital_occupancy_count",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							},
+							{
+								"sink": {
+									"name": "icu_occupancy_count",
+									"type": "Int64",
+									"physicalType": "bigint"
 								}
 							},
 							{
@@ -145,6 +132,13 @@
 								},
 								"sink": {
 									"name": "source",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "daily_or_weekly",
 									"type": "String",
 									"physicalType": "varchar"
 								}
@@ -162,16 +156,32 @@
 						"referenceName": "ds_sliver_from_adls",
 						"type": "DatasetReference",
 						"parameters": {
-							"file_name": "covid-19_cases_and_death.csv"
+							"file_name": "Weekly_hospital_admission_rate.csv"
 						}
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "ds_cases_and_death_sqldb",
+						"referenceName": "ds_hospital_admission_sqldb",
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "Daily Copy data2",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"enableStaging": false
+				}
 			}
 		],
 		"variables": {
