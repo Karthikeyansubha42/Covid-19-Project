@@ -38,10 +38,6 @@
 		"ls_kaggle_http_properties_typeProperties_userName": {
 			"type": "string",
 			"defaultValue": "karthikeyan42e"
-		},
-		"tr_ingest_population_data_properties_typeProperties_scope": {
-			"type": "string",
-			"defaultValue": "/subscriptions/cdfe344d-0fd0-4b5c-b636-c2a5604f3286/resourceGroups/demo-projects/providers/Microsoft.Storage/storageAccounts/blob3042"
 		}
 	},
 	"variables": {
@@ -199,146 +195,162 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_ingest_population_data')]",
+			"name": "[concat(parameters('factoryName'), '/pl_ingest_kaggle_data')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"activities": [
 					{
-						"name": "Copy Population Data",
-						"type": "Copy",
+						"name": "ForEach1",
+						"type": "ForEach",
 						"dependsOn": [
 							{
-								"activity": "Get Metadata1",
+								"activity": "Filewatcher for date file",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "FileWatcher for country code files",
 								"dependencyConditions": [
 									"Succeeded"
 								]
 							}
 						],
-						"policy": {
-							"timeout": "0.00:10:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
 						"userProperties": [],
 						"typeProperties": {
-							"source": {
-								"type": "DelimitedTextSource",
-								"storeSettings": {
-									"type": "AzureBlobStorageReadSettings",
-									"recursive": false,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
-								}
+							"items": {
+								"value": "@variables('kaggle_file_list')",
+								"type": "Expression"
 							},
-							"sink": {
-								"type": "DelimitedTextSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings",
-									"copyBehavior": "PreserveHierarchy"
-								},
-								"formatSettings": {
-									"type": "DelimitedTextWriteSettings",
-									"quoteAllText": true,
-									"fileExtension": ".txt"
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Copy each files",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.00:10:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobStorageReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings",
+												"copyBehavior": "PreserveHierarchy"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_kaggle_blob",
+											"type": "DatasetReference",
+											"parameters": {
+												"file_name": {
+													"value": "@item()",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_rawdata_to_adls",
+											"type": "DatasetReference",
+											"parameters": {
+												"raw_data_file_name": {
+													"value": "@item()",
+													"type": "Expression"
+												}
+											}
+										}
+									]
 								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_population_blob",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "ds_rawdata_to_adls",
-								"type": "DatasetReference",
-								"parameters": {
-									"raw_data_file_name": {
-										"value": "@replace(activity('Get Metadata1').output.itemName,'.gz','')",
-										"type": "Expression"
-									}
-								}
-							}
-						]
+							]
+						}
 					},
 					{
-						"name": "Population Filewatcher",
+						"name": "Filewatcher for date file",
 						"type": "Validation",
 						"dependsOn": [],
 						"userProperties": [],
 						"typeProperties": {
 							"dataset": {
-								"referenceName": "ds_population_blob",
+								"referenceName": "ds_kaggle_blob",
 								"type": "DatasetReference",
-								"parameters": {}
+								"parameters": {
+									"file_name": "date_dataset.csv"
+								}
 							},
-							"timeout": "0.00:02:00",
+							"timeout": "0.00:01:00",
 							"sleep": 10
 						}
 					},
 					{
-						"name": "Get Metadata1",
-						"type": "GetMetadata",
-						"dependsOn": [
-							{
-								"activity": "Population Filewatcher",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.00:10:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
+						"name": "FileWatcher for country code files",
+						"type": "Validation",
+						"dependsOn": [],
 						"userProperties": [],
 						"typeProperties": {
 							"dataset": {
-								"referenceName": "ds_population_blob",
+								"referenceName": "ds_kaggle_blob",
 								"type": "DatasetReference",
-								"parameters": {}
+								"parameters": {
+									"file_name": "iso_country_codes.csv"
+								}
 							},
-							"fieldList": [
-								"itemName"
-							],
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							},
-							"formatSettings": {
-								"type": "DelimitedTextReadSettings"
-							}
+							"timeout": "0.00:01:00",
+							"sleep": 10
 						}
 					}
 				],
 				"policy": {
 					"elapsedTimeMetric": {}
 				},
+				"variables": {
+					"kaggle_file_list": {
+						"type": "Array",
+						"defaultValue": [
+							"date_dataset.csv",
+							"iso_country_codes.csv"
+						]
+					}
+				},
 				"annotations": [],
 				"lastPublishTime": "2024-12-21T02:24:54Z"
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ds_population_blob')]",
+				"[concat(variables('factoryId'), '/datasets/ds_kaggle_blob')]",
 				"[concat(variables('factoryId'), '/datasets/ds_rawdata_to_adls')]"
 			]
 		},
@@ -810,7 +822,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ds_population_blob')]",
+			"name": "[concat(parameters('factoryName'), '/ds_kaggle_blob')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -818,17 +830,25 @@
 					"referenceName": "ls_blob_storage",
 					"type": "LinkedServiceReference"
 				},
+				"parameters": {
+					"file_name": {
+						"type": "string"
+					}
+				},
 				"annotations": [],
 				"type": "DelimitedText",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobStorageLocation",
-						"fileName": "population_by_age.tsv",
+						"fileName": {
+							"value": "@dataset().file_name",
+							"type": "Expression"
+						},
 						"folderPath": "kaggle_dataset",
 						"container": "source-dataset"
 					},
-					"columnDelimiter": "\t",
-					"compressionCodec": "gzip",
+					"columnDelimiter": ",",
+					"compressionCodec": null,
 					"compressionLevel": "Optimal",
 					"escapeChar": "\\",
 					"firstRowAsHeader": true,
@@ -997,36 +1017,6 @@
 				}
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/tr_ingest_population_data')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"runtimeState": "Started",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "pl_ingest_population_data",
-							"type": "PipelineReference"
-						},
-						"parameters": {}
-					}
-				],
-				"type": "BlobEventsTrigger",
-				"typeProperties": {
-					"blobPathBeginsWith": "/source-dataset/blobs/population_files/",
-					"ignoreEmptyBlobs": true,
-					"scope": "[parameters('tr_ingest_population_data_properties_typeProperties_scope')]",
-					"events": [
-						"Microsoft.Storage.BlobCreated"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/pl_ingest_population_data')]"
-			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/dflow_cases_and_death_records')]",
