@@ -13,14 +13,14 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "ds_country_code_blob",
+						"referenceName": "ds_country_code_from_adls",
 						"type": "DatasetReference"
 					},
 					"name": "CountryCode"
 				},
 				{
 					"dataset": {
-						"referenceName": "ds_date_blob",
+						"referenceName": "ds_date_file_from_adls",
 						"type": "DatasetReference"
 					},
 					"name": "DateSource"
@@ -89,7 +89,7 @@
 				"source(output(",
 				"          country as string,",
 				"          indicator as string,",
-				"          date as date,",
+				"          date as date 'dd-MM-yyyy',",
 				"          year_week as string,",
 				"          value as short,",
 				"          source as string,",
@@ -126,6 +126,7 @@
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
+				"     inferDriftedColumnTypes: true,",
 				"     ignoreNoFilesFound: false) ~> DateSource",
 				"HospitalAdmissionRateSource, CountryCode join(HospitalAdmissionRateSource@country == CountryCode@country,",
 				"     joinType:'left',",

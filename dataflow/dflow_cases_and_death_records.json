@@ -13,10 +13,10 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "ds_country_code_blob",
+						"referenceName": "ds_country_code_from_adls",
 						"type": "DatasetReference"
 					},
-					"name": "CountryCode"
+					"name": "CountryCode1"
 				}
 			],
 			"sinks": [
@@ -69,13 +69,13 @@
 				"          country_code_2_digit as string,",
 				"          country_code_3_digit as string,",
 				"          continent as string,",
-				"          population as integer",
+				"          population as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> CountryCode",
+				"     ignoreNoFilesFound: false) ~> CountryCode1",
 				"CasesAndDeathsSource filter(continent=='Europe' && country_code!='NA') ~> FilterOnlyEuropeanData",
-				"FilterOnlyEuropeanData, CountryCode lookup(CasesAndDeathsSource@country == CountryCode@country,",
+				"FilterOnlyEuropeanData, CountryCode1 lookup(CasesAndDeathsSource@country == CountryCode1@country,",
 				"     multiple: false,",
 				"     pickup: 'any',",
 				"     broadcast: 'auto')~> LookupCountryCode",
