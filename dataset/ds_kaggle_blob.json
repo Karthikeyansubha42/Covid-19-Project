@@ -1,21 +1,29 @@
 {
-	"name": "ds_population_blob",
+	"name": "ds_kaggle_blob",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_blob_storage",
 			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"file_name": {
+				"type": "string"
+			}
 		},
 		"annotations": [],
 		"type": "DelimitedText",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
-				"fileName": "population_by_age.tsv",
+				"fileName": {
+					"value": "@dataset().file_name",
+					"type": "Expression"
+				},
 				"folderPath": "kaggle_dataset",
 				"container": "source-dataset"
 			},
-			"columnDelimiter": "\t",
-			"compressionCodec": "gzip",
+			"columnDelimiter": ",",
+			"compressionCodec": null,
 			"compressionLevel": "Optimal",
 			"escapeChar": "\\",
 			"firstRowAsHeader": true,
