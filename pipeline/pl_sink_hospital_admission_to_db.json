@@ -121,6 +121,11 @@
 								}
 							},
 							{
+								"source": {
+									"name": "count of Weekly new hospital admissions per 100k",
+									"type": "String",
+									"physicalType": "String"
+								},
 								"sink": {
 									"name": "hospital_occupancy_count",
 									"type": "Int64",
@@ -128,6 +133,11 @@
 								}
 							},
 							{
+								"source": {
+									"name": "count of Weekly new ICU admissions per 100k",
+									"type": "String",
+									"physicalType": "String"
+								},
 								"sink": {
 									"name": "icu_occupancy_count",
 									"type": "Int64",
@@ -147,6 +157,11 @@
 								}
 							},
 							{
+								"source": {
+									"name": "weekly_or_daily",
+									"type": "String",
+									"physicalType": "String"
+								},
 								"sink": {
 									"name": "daily_or_weekly",
 									"type": "String",
@@ -178,7 +193,7 @@
 				]
 			},
 			{
-				"name": "Daily Copy data2",
+				"name": "Daily Copy data",
 				"type": "Copy",
 				"dependsOn": [],
 				"policy": {

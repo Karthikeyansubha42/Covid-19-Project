@@ -86,7 +86,7 @@
 				"source(output(",
 				"          country as string,",
 				"          indicator as string,",
-				"          date as date 'dd-MM-yyyy',",
+				"          date as date 'yyyy-MM-dd',",
 				"          year_week as string,",
 				"          value as short,",
 				"          source as string,",
