@@ -616,7 +616,14 @@
 					{
 						"name": "Lookup_data_from ecdc_file_list",
 						"type": "Lookup",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "FileWatcher for ecdc_file_list",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "0.00:10:00",
 							"retry": 0,
@@ -737,6 +744,21 @@
 									]
 								}
 							]
+						}
+					},
+					{
+						"name": "FileWatcher for ecdc_file_list",
+						"type": "Validation",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_ecdc_file_list_blob",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"timeout": "0.00:01:00",
+							"sleep": 10
 						}
 					}
 				],
